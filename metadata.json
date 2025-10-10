@@ -1,0 +1,5 @@
+{
+  "name": "AI Video Generator",
+  "description": "Create stunning videos from text prompts and optional images using the power of Google's Gemini AI. Describe your scene, add a starting image if you like, and watch your vision come to life.",
+  "requestFramePermissions": []
+}
