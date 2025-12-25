@@ -1,137 +1,103 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, VideoGenerationReferenceType } from "@google/genai";
 import type { ImageFile } from '../types';
 
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable is not set.");
-}
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-// A utility function to introduce a delay
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-/**
- * Extracts structured error details from the raw error object thrown by the API client.
- * @param error The unknown error object from a catch block.
- * @returns An object with error code, status, and message if found.
- */
-const getApiErrorDetails = (error: unknown): { code?: number; status?: string; message?: string } => {
-  if (typeof error === 'object' && error !== null) {
-    const err = error as { [key: string]: any };
-
-    // The error object itself may be the response body, e.g., { error: { ... } }
-    if (err.error && typeof err.error === 'object') {
-      return err.error;
-    }
-    
-    // The error message might be a JSON string.
-    if (typeof err.message === 'string') {
-      try {
-        const parsed = JSON.parse(err.message);
-        if (parsed.error && typeof parsed.error === 'object') {
-          return parsed.error;
-        }
-      } catch (e) {
-        // Not a JSON string, continue to the next check.
-      }
-    }
-  }
-
-  return {};
+// Helper to get fresh instance with latest key from dialog
+const getAiClient = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("API_KEY not available. Please select an API key.");
+  return new GoogleGenAI({ apiKey });
 };
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export const generateVideo = async (prompt: string, image: ImageFile | null, numberOfVideos: number, aspectRatio: string): Promise<string[]> => {
+export const generateVideo = async (
+  prompt: string, 
+  images: ImageFile[], 
+  config: {
+    numberOfVideos: number;
+    aspectRatio: string;
+    resolution: '720p' | '1080p';
+    model: 'veo-3.1-fast-generate-preview' | 'veo-3.1-generate-preview';
+    previousVideo?: any;
+  }
+): Promise<string[]> => {
+  const ai = getAiClient();
   try {
-    const generateVideosParams: any = {
-      model: 'veo-2.0-generate-001',
-      prompt,
+    const params: any = {
+      model: config.model,
       config: {
-        numberOfVideos,
-        aspectRatio,
+        numberOfVideos: config.numberOfVideos,
+        aspectRatio: config.aspectRatio,
+        resolution: config.resolution,
       }
     };
 
-    if (image) {
-      generateVideosParams.image = {
-        imageBytes: image.base64,
-        mimeType: image.mimeType,
+    if (prompt) params.prompt = prompt;
+
+    // Handle Extension
+    if (config.previousVideo) {
+      params.video = config.previousVideo;
+    } 
+    // Handle Multi-Reference (Pro model only)
+    else if (images.length > 0 && config.model === 'veo-3.1-generate-preview') {
+      params.config.referenceImages = images.slice(0, 3).map(img => ({
+        image: {
+          imageBytes: img.base64,
+          mimeType: img.mimeType,
+        },
+        referenceType: VideoGenerationReferenceType.ASSET,
+      }));
+      params.prompt = prompt || "Generate a video based on these references";
+    }
+    // Handle Single Image (Fast or Pro)
+    else if (images.length === 1) {
+      params.image = {
+        imageBytes: images[0].base64,
+        mimeType: images[0].mimeType,
       };
     }
 
-    let operation = await ai.models.generateVideos(generateVideosParams);
+    let operation = await ai.models.generateVideos(params);
 
-    // Poll for the result
     while (!operation.done) {
-      await sleep(10000); // Wait for 10 seconds before checking again
-      // FIX: The `getVideosOperation` method can accept the entire operation object.
-      // This is a more robust way to poll for the result and avoids potential typing issues with `operation.name`.
-      operation = await ai.operations.getVideosOperation({ operation: operation });
+      await sleep(10000);
+      operation = await ai.operations.getVideosOperation({ operation });
     }
 
     if (operation.error) {
-        // Handle errors that occur during the long-running operation.
-        // The error message here is often descriptive (e.g., safety violations). Let the catch block format it.
-        const errorMessage = operation.error.message || 'An unknown error occurred during video processing.';
-        // FIX: Explicitly cast the error message to a string. The type of `operation.error.message`
-        // can sometimes be inferred as `unknown`, which is not assignable to the `Error` constructor.
-        throw new Error(String(errorMessage));
+      throw new Error(String(operation.error.message || 'Generation failed'));
     }
 
     const generatedVideos = operation.response?.generatedVideos;
-    if (!generatedVideos || generatedVideos.length === 0) {
-      throw new Error("Video generation completed, but no videos were found.");
+    if (!generatedVideos?.length) {
+      throw new Error("No videos were returned.");
     }
     
-    // The API key must be appended for the download link to work
     const apiKey = process.env.API_KEY;
-
-    // Fetch all videos concurrently and create object URLs
-    const videoPromises = generatedVideos.map(async (videoData) => {
-        const downloadLink = videoData?.video?.uri;
-        if (!downloadLink) {
-            console.warn("A video was generated but no download link was found for it.");
-            return null;
-        }
-        const fullUrl = `${downloadLink}&key=${apiKey}`;
-        const response = await fetch(fullUrl);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch video from ${fullUrl}. Status: ${response.status}`);
-        }
-        const videoBlob = await response.blob();
-        return URL.createObjectURL(videoBlob);
+    const videoPromises = generatedVideos.map(async (videoData: any) => {
+      const downloadLink = videoData?.video?.uri;
+      if (!downloadLink) return null;
+      
+      const response = await fetch(`${downloadLink}&key=${apiKey}`);
+      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+      
+      const blob = await response.blob();
+      // We store the raw metadata if we want to extend it later
+      const objectUrl = URL.createObjectURL(blob);
+      (window as any)._videoMetadata = (window as any)._videoMetadata || {};
+      (window as any)._videoMetadata[objectUrl] = videoData.video;
+      
+      return objectUrl;
     });
 
-    const videoObjectUrls = await Promise.all(videoPromises);
-    
-    // Filter out any nulls in case a video link was missing
-    return videoObjectUrls.filter((url): url is string => url !== null);
+    const urls = await Promise.all(videoPromises);
+    return urls.filter((url): url is string => url !== null);
 
-  } catch (error: unknown) {
-    console.error("Error in generateVideo service:", error);
-
-    const apiError = getApiErrorDetails(error);
-    let message: string;
-
-    // More robustly identify quota errors by checking the status.
-    if (apiError.status === 'RESOURCE_EXHAUSTED') {
-      message = `QUOTA_EXHAUSTED: ${apiError.message || 'The API quota has been exceeded.'}`;
-    } else if (apiError.message) {
-      message = apiError.message;
-    } else if (error instanceof Error) {
-      message = error.message;
-    } else if (typeof error === 'string' && error) {
-      message = error;
-    } else {
-      message = 'An unknown error occurred while generating the video.';
+  } catch (error: any) {
+    console.error("Veo Error:", error);
+    if (error.message?.includes("Requested entity was not found")) {
+        throw new Error("KEY_NOT_FOUND: The selected API key project was not found. Please re-select a valid project.");
     }
-
-
-    // Clean up known verbose prefixes from the API to create a cleaner user-facing message.
-    if (message.startsWith('Video generation failed: ')) {
-      message = message.substring('Video generation failed: '.length);
-    }
-
-    throw new Error(message);
+    throw error;
   }
 };
