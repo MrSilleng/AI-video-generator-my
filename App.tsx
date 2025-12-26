@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { VideoGenerator } from './components/VideoGenerator';
 import { Header } from './components/Header';
@@ -7,13 +8,24 @@ const App: React.FC = () => {
   const [hasKey, setHasKey] = useState<boolean>(false);
   const [checking, setChecking] = useState(true);
 
+  const checkKey = async () => {
+    const selected = await (window as any).aistudio.hasSelectedApiKey();
+    setHasKey(selected);
+    setChecking(false);
+  };
+
   useEffect(() => {
-    const checkKey = async () => {
-      const selected = await (window as any).aistudio.hasSelectedApiKey();
-      setHasKey(selected);
-      setChecking(false);
-    };
     checkKey();
+
+    // Listener for service-triggered key resets (e.g. 404 errors)
+    const handleReset = async () => {
+      setHasKey(false);
+      await (window as any).aistudio.openSelectKey();
+      setHasKey(true); // Proceed per race condition mitigation rules
+    };
+
+    window.addEventListener('aistudio:resetKey', handleReset);
+    return () => window.removeEventListener('aistudio:resetKey', handleReset);
   }, []);
 
   const handleSelectKey = async () => {

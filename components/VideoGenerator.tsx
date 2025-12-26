@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useVideoGenerator } from '../hooks/useVideoGenerator';
 import { Loader } from './Loader';
@@ -30,16 +31,16 @@ const GeneratedVideoItem: React.FC<GeneratedVideoItemProps> = ({
   url, index, isSelected, onToggleSelect, onDownload, onEdit, onExtend
 }) => {
   return (
-    <div className={`relative bg-gray-900/50 rounded-xl overflow-hidden border-2 transition-all flex flex-col group ${isSelected ? 'border-cyan-500 shadow-[0_0_15px_rgba(34,211,238,0.3)]' : 'border-gray-700 hover:border-gray-500'}`}>
+    <div className={`relative bg-gray-900/50 rounded-xl overflow-hidden border-2 transition-all flex flex-col group ${isSelected ? 'border-cyan-500 shadow-[0_0_20px_rgba(34,211,238,0.2)]' : 'border-gray-700 hover:border-gray-500'}`}>
       <div className="absolute top-2 left-2 z-10">
         <button 
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleSelect(); }}
-          className="bg-gray-900/80 rounded-full p-0.5 hover:scale-110 transition-transform"
+          className="bg-gray-900/80 rounded-full p-0.5 hover:scale-110 transition-transform shadow-lg"
         >
           {isSelected ? (
-            <CheckCircleIconSolid className="w-6 h-6 text-cyan-400" />
+            <CheckCircleIconSolid className="w-7 h-7 text-cyan-400" />
           ) : (
-            <CircleIcon className="w-6 h-6 text-gray-400 opacity-60 group-hover:opacity-100" />
+            <CircleIcon className="w-7 h-7 text-gray-400 opacity-60 group-hover:opacity-100" />
           )}
         </button>
       </div>
@@ -48,16 +49,16 @@ const GeneratedVideoItem: React.FC<GeneratedVideoItemProps> = ({
         <source src={url} type="video/mp4" />
       </video>
       
-      <div className="p-3 grid grid-cols-3 gap-2 bg-gray-800/80">
-         <button onClick={() => onDownload(url, index)} className="flex flex-col items-center gap-1 p-2 text-[10px] font-bold uppercase tracking-wider rounded-lg bg-gray-700 hover:bg-cyan-600 transition-colors">
+      <div className="p-3 grid grid-cols-3 gap-2 bg-gray-800/80 backdrop-blur-sm">
+         <button onClick={() => onDownload(url, index)} title="Download Clip" className="flex flex-col items-center gap-1 p-2 text-[10px] font-bold uppercase tracking-wider rounded-lg bg-gray-700 hover:bg-cyan-600 transition-colors">
             <DownloadIcon className="w-4 h-4" />
             <span>Save</span>
          </button>
-         <button onClick={onEdit} className="flex flex-col items-center gap-1 p-2 text-[10px] font-bold uppercase tracking-wider rounded-lg bg-gray-700 hover:bg-purple-600 transition-colors">
+         <button onClick={onEdit} title="Add Text Overlay" className="flex flex-col items-center gap-1 p-2 text-[10px] font-bold uppercase tracking-wider rounded-lg bg-gray-700 hover:bg-purple-600 transition-colors">
             <PencilIcon className="w-4 h-4" />
             <span>Edit</span>
           </button>
-          <button onClick={onExtend} className="flex flex-col items-center gap-1 p-2 text-[10px] font-bold uppercase tracking-wider rounded-lg bg-gray-700 hover:bg-green-600 transition-colors">
+          <button onClick={onExtend} title="Extend with AI" className="flex flex-col items-center gap-1 p-2 text-[10px] font-bold uppercase tracking-wider rounded-lg bg-gray-700 hover:bg-green-600 transition-colors">
             <PlusIcon className="w-4 h-4" />
             <span>Extend</span>
           </button>
@@ -123,23 +124,25 @@ export const VideoGenerator: React.FC = () => {
           <div className="lg:col-span-5 space-y-6">
             <div>
               <div className="flex justify-between items-center mb-3">
-                <label className="text-sm font-semibold text-gray-300">Generation Model</label>
+                <label className="text-sm font-semibold text-gray-300 uppercase tracking-widest text-[11px]">Generation Model</label>
                 {selectedVideos.length > 1 && (
-                  <button 
-                    type="button"
-                    onClick={() => setIsMergerOpen(true)}
-                    className="flex items-center gap-2 px-3 py-1 bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-cyan-500 hover:text-white transition-all"
-                  >
-                    <FilmStripIcon className="w-3.5 h-3.5" />
-                    Merge {selectedVideos.length} Clips
-                  </button>
+                  <div className="animate-bounce">
+                    <button 
+                      type="button"
+                      onClick={() => setIsMergerOpen(true)}
+                      className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-cyan-500/20"
+                    >
+                      <FilmStripIcon className="w-3.5 h-3.5" />
+                      Merge {selectedVideos.length} Clips
+                    </button>
+                  </div>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setModelType('veo-3.1-fast-generate-preview')}
-                  className={`p-3 rounded-xl border text-sm transition-all ${modelType === 'veo-3.1-fast-generate-preview' ? 'bg-cyan-500/20 border-cyan-400 text-white shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'bg-gray-900/50 border-gray-700 text-gray-400'}`}
+                  className={`p-3 rounded-xl border text-sm transition-all text-left ${modelType === 'veo-3.1-fast-generate-preview' ? 'bg-cyan-500/20 border-cyan-400 text-white shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'bg-gray-900/50 border-gray-700 text-gray-400'}`}
                 >
                   <span className="block font-bold">Fast Engine</span>
                   <span className="text-[10px] opacity-60">High speed, standard quality</span>
@@ -147,7 +150,7 @@ export const VideoGenerator: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setModelType('veo-3.1-generate-preview')}
-                  className={`p-3 rounded-xl border text-sm transition-all ${modelType === 'veo-3.1-generate-preview' ? 'bg-purple-500/20 border-purple-400 text-white shadow-[0_0_15px_rgba(192,132,252,0.2)]' : 'bg-gray-900/50 border-gray-700 text-gray-400'}`}
+                  className={`p-3 rounded-xl border text-sm transition-all text-left ${modelType === 'veo-3.1-generate-preview' ? 'bg-purple-500/20 border-purple-400 text-white shadow-[0_0_15px_rgba(192,132,252,0.2)]' : 'bg-gray-900/50 border-gray-700 text-gray-400'}`}
                 >
                   <span className="block font-bold">Pro Engine</span>
                   <span className="text-[10px] opacity-60">Deep cinematic quality</span>
@@ -156,22 +159,22 @@ export const VideoGenerator: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="prompt" className="block text-sm font-semibold text-gray-300 mb-2">Prompt</label>
+              <label htmlFor="prompt" className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-widest text-[11px]">Prompt</label>
               <textarea
                 id="prompt"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Cinematic drone shot of a hidden temple in the Andes..."
-                className="w-full h-32 p-4 bg-gray-900/80 border border-gray-700 rounded-2xl focus:ring-2 focus:ring-cyan-500 transition-all resize-none text-sm"
+                placeholder="Describe your vision (e.g., A futuristic cyberpunk market at dusk, neon signs reflecting in puddles...)"
+                className="w-full h-32 p-4 bg-gray-900/80 border border-gray-700 rounded-2xl focus:ring-2 focus:ring-cyan-500 transition-all resize-none text-sm leading-relaxed"
                 required
               />
             </div>
 
             <div className="space-y-4">
-              <label className="block text-sm font-semibold text-gray-300">Reference Images ({imageFiles.length}/{IMAGE_LIMIT})</label>
+              <label className="block text-sm font-semibold text-gray-300 uppercase tracking-widest text-[11px]">Reference Images ({imageFiles.length}/{IMAGE_LIMIT})</label>
               <div className="flex flex-wrap gap-2">
                 {imageFiles.map(img => (
-                  <div key={img.id} className="relative w-16 h-16 rounded-lg overflow-hidden group">
+                  <div key={img.id} className="relative w-16 h-16 rounded-lg overflow-hidden group border border-white/5">
                     <img src={img.objectUrl} className="w-full h-full object-cover" />
                     <button type="button" onClick={() => removeImage(img.id)} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <XCircleIcon className="w-5 h-5 text-white" />
@@ -179,7 +182,7 @@ export const VideoGenerator: React.FC = () => {
                   </div>
                 ))}
                 {imageFiles.length < IMAGE_LIMIT && (
-                  <label className="w-16 h-16 border-2 border-dashed border-gray-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-cyan-500 transition-colors">
+                  <label className="w-16 h-16 border-2 border-dashed border-gray-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-cyan-500 transition-colors bg-gray-900/50">
                     <UploadIcon className="w-6 h-6 text-gray-500" />
                     <input type="file" className="sr-only" onChange={addImageFromFile} accept="image/*" />
                   </label>
@@ -189,7 +192,7 @@ export const VideoGenerator: React.FC = () => {
           </div>
 
           {/* Preview / Results */}
-          <div className="lg:col-span-7 bg-gray-900/40 rounded-3xl border border-white/5 p-4 flex flex-col items-center justify-center min-h-[400px]">
+          <div className="lg:col-span-7 bg-gray-900/40 rounded-3xl border border-white/5 p-4 flex flex-col items-center justify-center min-h-[400px] shadow-inner">
             {isLoading ? (
               <Loader message={loadingMessage} />
             ) : error ? (
@@ -220,10 +223,12 @@ export const VideoGenerator: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-gray-500 text-center space-y-2">
-                <SparklesIcon className="w-10 h-10 mx-auto opacity-20" />
-                <p>Your cinematic creations will appear here</p>
-                <p className="text-xs opacity-50">Tip: Select multiple clips to merge them into a single movie</p>
+              <div className="text-gray-500 text-center space-y-3">
+                <SparklesIcon className="w-12 h-12 mx-auto opacity-20 text-cyan-400" />
+                <div>
+                  <p className="text-gray-400 font-medium">Your cinematic creations will appear here</p>
+                  <p className="text-xs opacity-50 mt-1">Tip: Select multiple clips using the check icon to merge them</p>
+                </div>
               </div>
             )}
           </div>
@@ -233,18 +238,18 @@ export const VideoGenerator: React.FC = () => {
         <div className="pt-6 border-t border-gray-700/50 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Ratio</label>
-              <select value={aspectRatio} onChange={e => setAspectRatio(e.target.value)} className="bg-transparent border-none focus:ring-0 text-sm font-bold text-cyan-400 cursor-pointer">
-                <option value="16:9">16:9</option>
-                <option value="9:16">9:16</option>
-                <option value="1:1">1:1</option>
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Ratio</label>
+              <select value={aspectRatio} onChange={e => setAspectRatio(e.target.value)} className="bg-transparent border-none focus:ring-0 text-sm font-bold text-cyan-400 cursor-pointer hover:text-cyan-300 transition-colors">
+                <option value="16:9" className="bg-gray-800">16:9 Landscape</option>
+                <option value="9:16" className="bg-gray-800">9:16 Portrait</option>
+                <option value="1:1" className="bg-gray-800">1:1 Square</option>
               </select>
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Quality</label>
-              <select value={resolution} onChange={e => setResolution(e.target.value as any)} className="bg-transparent border-none focus:ring-0 text-sm font-bold text-cyan-400 cursor-pointer">
-                <option value="720p">HD (720p)</option>
-                <option value="1080p">Full HD (1080p)</option>
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Resolution</label>
+              <select value={resolution} onChange={e => setResolution(e.target.value as any)} className="bg-transparent border-none focus:ring-0 text-sm font-bold text-cyan-400 cursor-pointer hover:text-cyan-300 transition-colors">
+                <option value="720p" className="bg-gray-800">720p HD</option>
+                <option value="1080p" className="bg-gray-800">1080p Full HD</option>
               </select>
             </div>
           </div>
@@ -254,18 +259,18 @@ export const VideoGenerator: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsMergerOpen(true)}
-                className="flex-1 sm:flex-none px-6 py-4 bg-gray-700 border border-gray-600 rounded-2xl font-bold text-white hover:bg-gray-600 transition-all flex items-center justify-center gap-2"
+                className="flex-1 sm:flex-none px-6 py-4 bg-gray-700/50 border border-gray-600 rounded-2xl font-bold text-white hover:bg-gray-600 transition-all flex items-center justify-center gap-2 hover:border-cyan-500/50"
               >
                 <FilmStripIcon className="w-5 h-5" />
-                Merge ({selectedVideos.length})
+                Sequence ({selectedVideos.length})
               </button>
             )}
             <button
               type="submit"
               disabled={isLoading || !prompt.trim()}
-              className="flex-1 sm:flex-none px-10 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl font-black text-white shadow-xl shadow-cyan-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
+              className="flex-1 sm:flex-none px-12 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl font-black text-white shadow-xl shadow-cyan-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale disabled:hover:scale-100"
             >
-              {isLoading ? 'Processing...' : 'Generate Magic'}
+              {isLoading ? 'Rending Frame Buffer...' : 'Generate Movie'}
             </button>
           </div>
         </div>

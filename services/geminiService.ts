@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, VideoGenerationReferenceType } from "@google/genai";
 import type { ImageFile } from '../types';
 
@@ -65,7 +66,17 @@ export const generateVideo = async (
     }
 
     if (operation.error) {
-      throw new Error(String(operation.error.message || 'Generation failed'));
+      const err = operation.error;
+      // Handle 404 - Project/Key issue
+      if (err.message?.includes("Requested entity was not found") || err.code === 404) {
+        window.dispatchEvent(new CustomEvent('aistudio:resetKey'));
+        throw new Error("The selected API key project was not found. Please re-select a valid project.");
+      }
+      // Handle 429 - Quota/Billing issue
+      if (err.message?.includes("exceeded your current quota") || err.code === 429) {
+        throw new Error("Quota exceeded. Please check your billing status and project limits at ai.google.dev.");
+      }
+      throw new Error(String(err.message || 'Generation failed'));
     }
 
     const generatedVideos = operation.response?.generatedVideos;
@@ -95,8 +106,14 @@ export const generateVideo = async (
 
   } catch (error: any) {
     console.error("Veo Error:", error);
-    if (error.message?.includes("Requested entity was not found")) {
-        throw new Error("KEY_NOT_FOUND: The selected API key project was not found. Please re-select a valid project.");
+    // Double-check error message for the 404 project re-selection rule
+    if (error.message?.includes("Requested entity was not found") || (error.code === 404)) {
+        window.dispatchEvent(new CustomEvent('aistudio:resetKey'));
+        throw new Error("The selected API key project was not found. Please re-select a valid project.");
+    }
+    // Handle 429 - Resource Exhausted
+    if (error.message?.includes("RESOURCE_EXHAUSTED") || error.code === 429) {
+        throw new Error("Generation limit reached. Please check your Gemini API quota and billing details.");
     }
     throw error;
   }
